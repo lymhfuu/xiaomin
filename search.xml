@@ -9,24 +9,9 @@
 协程是可暂停的逻辑片段  ○ 使用 IEnumerator，通过 yield return 暂停  ○ 每次暂停时保存当前状态，下次恢复继续执行
 协程的作用  ○ 分帧执行逻辑（例如技能前摇、Buff 持续）  ○ 延迟逻辑（等待一段时间或等待物理完成）二、C# 层面的实现机制
 
-Unity 的协程本质依赖 C# 编译器生成的状态机：IEnumerator MyCoroutine(){    print(“开始”);    yield return null;    print(“下一帧继续”);}1️⃣ 编译器转换编译器会把这个方法转换成一个 状态机类：class MyCoroutineStateMachine : IEnumerator{    int state &#x3D; 0;
-public bool MoveNext()
-&#123;
-    switch (state)
-    &#123;
-        case 0:
-            print(&quot;开始&quot;);
-            state = 1;
-            return true; // yield return null
-        case 1:
-            print(&quot;下一帧继续&quot;);
-            state = -1;
-            return false; // 协程结束
-    &#125;
-    return false;
-&#125;
-
-}● 每次调用 MoveNext() 就推进协程一次● yield return 本质是：
+Unity 的协程本质依赖 C# 编译器生成的状态机：IEnumerator MyCoroutine(){    print(“开始”);    yield return null;    print(“下一帧继续”);}1️⃣ 编译器转换编译器会把这个方法转换成一个 状态机类：
+class MyCoroutineStateMachine : IEnumerator&#123;    int state = 0;    public bool MoveNext()    &#123;        switch (state)        &#123;            case 0:                print(&quot;开始&quot;);                state = 1;                return true; // yield return null            case 1:                print(&quot;下一帧继续&quot;);                state = -1;                return false; // 协程结束        &#125;        return false;    &#125;&#125;
+● 每次调用 MoveNext() 就推进协程一次● yield return 本质是：
 
 暂停函数
 保存 state
@@ -41,12 +26,12 @@ MoveNext() 再次调用 → 协程继续执行 注意：状态机保存了局部
 
 
 C# 层面  ○ IEnumerator + 编译器状态机  ○ yield return → 保存状态 + 暂停执行
-
 Unity 层面  ○ Coroutine Manager 维护挂起队列  ○ 每帧遍历判断是否恢复  ○ 恢复时机依赖返回对象类型
+特性  ○ 非并行：协程只是在主线程分帧执行  ○ 可跨帧保持局部变量状态  ○ 可延迟逻辑&#x2F;控制执行顺序五、举例：技能前摇系统假设你做战斗系统：
 
-特性  ○ 非并行：协程只是在主线程分帧执行  ○ 可跨帧保持局部变量状态  ○ 可延迟逻辑&#x2F;控制执行顺序五、举例：技能前摇系统假设你做战斗系统：IEnumerator SkillCast(){ isCasting &#x3D; true; &#x2F;&#x2F; 前摇 0.5 秒 yield return new WaitForSeconds(0.5f);
- DealDamage(); &#x2F;&#x2F; 攻击命中 isCasting &#x3D; false;
-
+IEnumerator SkillCast(){    isCasting &#x3D; true;    &#x2F;&#x2F; 前摇 0.5 秒    yield return new WaitForSeconds(0.5f);
+DealDamage(); // 攻击命中
+isCasting = false;
 
 }执行原理：
 
@@ -63,7 +48,61 @@ class MyCoroutineStateMachine : IEnumerator&#123;    int state = 0;      // &lt;
 局部变量和参数的快照  ○ 不是直接保存在 state 里，但编译器会把它们变成状态机的成员变量  ○ 保证跨帧保持值
 特殊值 -1  ○ 表示协程已经结束为什么需要 state？如果没有 state，协程就没办法跨帧保存上下文：● 你的前摇技能挂起 0.5 秒● 下一帧继续执行 DealDamage● 如果没有 state，就不知道该从哪一行继续，也无法保留局部变量 x七、 体是如何判断继续执行的条件一、协程恢复的核心逻辑
 协程本身是一个 IEnumerator 状态机  ○ state 保存位置  ○ Current 保存 yield return 的值
-Unity 每帧会遍历挂起的协程队列，查看 每个协程的 Current 返回值，决定是否可以调用 MoveNext() 继续执行。所以判断“是否继续执行”，完全依赖 yield 返回的对象类型。二、不同 yield 对应的条件yield return 类型	Unity 判断条件（何时调用 MoveNext）	说明null	下一帧 Update 结束	跨一帧，立即恢复WaitForSeconds(seconds)	等待累计时间 &gt;&#x3D; seconds	Unity 内部计时器，每帧累加 deltaTime，时间到恢复WaitForFixedUpdate	FixedUpdate 完成	下一次物理帧结束后恢复WaitForEndOfFrame	本帧渲染完成	在渲染管线末尾恢复（LateUpdate 后）自定义 yield 对象（实现 ICustomYieldInstruction)	keepWaiting &#x3D;&#x3D; false	自定义条件判断，返回 false 时恢复三、内部原理假设协程队列是这样：List waitingCoroutines; 每帧大致伪代码：
+Unity 每帧会遍历挂起的协程队列，查看 每个协程的 Current 返回值，决定是否可以调用 MoveNext() 继续执行。所以判断“是否继续执行”，完全依赖 yield 返回的对象类型。二、不同 yield 对应的条件
+
+
+
+
+yield return 类型
+Unity 判断条件（何时调用 MoveNext）
+说明
+
+
+
+null
+下一帧 Update 结束
+跨一帧，立即恢复
+
+
+WaitForSeconds(seconds)
+等待累计时间 &gt;&#x3D; seconds
+Unity 内部计时器，每帧累加 deltaTime，时间到恢复
+
+
+WaitForFixedUpdate
+FixedUpdate 完成
+下一次物理帧结束后恢复
+
+
+WaitForEndOfFrame
+本帧渲染完成
+在渲染管线末尾恢复（LateUpdate 后）
+
+
+自定义 yield 对象（ICustomYieldInstruction）
+keepWaiting &#x3D;&#x3D; false
+自定义条件判断，返回 false 时恢复
+
+
+三、内部原理
+
+
+
+
+假设协程队列是这样：
+
+
+
+
+List waitingCoroutines;
+
+
+
+
+每帧大致伪代码：
+
+
+
 
 for each coroutine in waitingCoroutines:    object yieldObj = coroutine.Current;        if (CanResume(yieldObj)):        bool hasNext = coroutine.MoveNext();        if (!hasNext) remove from waitingCoroutines
 

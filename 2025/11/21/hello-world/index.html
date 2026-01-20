@@ -7,7 +7,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://lymhfuu.github.io/img/avatar.png">
 <meta property="article:published_time" content="2025-11-21T07:00:00.000Z">
-<meta property="article:modified_time" content="2026-01-20T13:09:25.764Z">
+<meta property="article:modified_time" content="2026-01-20T13:22:30.647Z">
 <meta property="article:author" content="XiaoMin">
 <meta property="article:tag" content="Demo">
 <meta name="twitter:card" content="summary">
@@ -18,7 +18,7 @@
   "url": "https://lymhfuu.github.io/2025/11/21/hello-world/",
   "image": "https://lymhfuu.github.io/img/avatar.png",
   "datePublished": "2025-11-21T07:00:00.000Z",
-  "dateModified": "2026-01-20T13:09:25.764Z",
+  "dateModified": "2026-01-20T13:22:30.647Z",
   "author": [
     {
       "@type": "Person",
@@ -159,30 +159,15 @@
   isHighlightShrink: false,
   isToc: false,
   pageType: 'post'
-}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/xiaomin.github.io/"><span class="site-name">代码小民</span></a><a class="nav-page-title" href="/xiaomin.github.io/"><span class="site-name">Unity协程的原理</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">Unity协程的原理</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-11-21T07:00:00.000Z" title="发表于 2025-11-21 15:00:00">2025-11-21</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-01-20T13:09:25.764Z" title="更新于 2026-01-20 21:09:25">2026-01-20</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/xiaomin.github.io/categories/Unity%E5%BC%80%E5%8F%91/">Unity开发</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>一、协程的概念</p>
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/xiaomin.github.io/"><span class="site-name">代码小民</span></a><a class="nav-page-title" href="/xiaomin.github.io/"><span class="site-name">Unity协程的原理</span><span class="site-name"><i class="fa-solid fa-circle-arrow-left"></i><span>  返回首页</span></span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">Unity协程的原理</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-11-21T07:00:00.000Z" title="发表于 2025-11-21 15:00:00">2025-11-21</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2026-01-20T13:22:30.647Z" title="更新于 2026-01-20 21:22:30">2026-01-20</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/xiaomin.github.io/categories/Unity%E5%BC%80%E5%8F%91/">Unity开发</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><p>一、协程的概念</p>
 <ol>
 <li>协程不是线程<br>  ○ 它不会并行执行，也不会占用系统线程<br>  ○ 全部在 Unity 主线程执行</li>
 <li>协程是可暂停的逻辑片段<br>  ○ 使用 IEnumerator，通过 yield return 暂停<br>  ○ 每次暂停时保存当前状态，下次恢复继续执行</li>
 <li>协程的作用<br>  ○ 分帧执行逻辑（例如技能前摇、Buff 持续）<br>  ○ 延迟逻辑（等待一段时间或等待物理完成）<br>二、C# 层面的实现机制</li>
 </ol>
-<p>Unity 的协程本质依赖 C# 编译器生成的状态机：<br>IEnumerator MyCoroutine()<br>{<br>    print(“开始”);<br>    yield return null;<br>    print(“下一帧继续”);<br>}<br>1️⃣ 编译器转换<br>编译器会把这个方法转换成一个 状态机类：<br>class MyCoroutineStateMachine : IEnumerator<br>{<br>    int state &#x3D; 0;</p>
-<pre><code>public bool MoveNext()
-&#123;
-    switch (state)
-    &#123;
-        case 0:
-            print(&quot;开始&quot;);
-            state = 1;
-            return true; // yield return null
-        case 1:
-            print(&quot;下一帧继续&quot;);
-            state = -1;
-            return false; // 协程结束
-    &#125;
-    return false;
-&#125;
-</code></pre>
-<p>}<br>● 每次调用 MoveNext() 就推进协程一次<br>● yield return 本质是：</p>
+<p>Unity 的协程本质依赖 C# 编译器生成的状态机：<br>IEnumerator MyCoroutine()<br>{<br>    print(“开始”);<br>    yield return null;<br>    print(“下一帧继续”);<br>}<br>1️⃣ 编译器转换<br>编译器会把这个方法转换成一个 状态机类：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">MyCoroutineStateMachine</span> : <span class="title">IEnumerator</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">int</span> state = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">MoveNext</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">switch</span> (state)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">case</span> <span class="number">0</span>:</span><br><span class="line">                print(<span class="string">&quot;开始&quot;</span>);</span><br><span class="line">                state = <span class="number">1</span>;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">true</span>; <span class="comment">// yield return null</span></span><br><span class="line">            <span class="keyword">case</span> <span class="number">1</span>:</span><br><span class="line">                print(<span class="string">&quot;下一帧继续&quot;</span>);</span><br><span class="line">                state = <span class="number">-1</span>;</span><br><span class="line">                <span class="keyword">return</span> <span class="literal">false</span>; <span class="comment">// 协程结束</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>● 每次调用 MoveNext() 就推进协程一次<br>● yield return 本质是：</p>
 <ol>
 <li>暂停函数</li>
 <li>保存 state</li>
@@ -196,14 +181,14 @@
 <li>MoveNext() 再次调用 → 协程继续执行<br> 注意：状态机保存了局部变量和执行位置，这就是“跨帧保持上下文”的秘密。<br>四、协程实现的核心原理总结</li>
 </ul>
 <ol>
-<li><p>C# 层面<br>  ○ IEnumerator + 编译器状态机<br>  ○ yield return → 保存状态 + 暂停执行</p>
-</li>
-<li><p>Unity 层面<br>  ○ Coroutine Manager 维护挂起队列<br>  ○ 每帧遍历判断是否恢复<br>  ○ 恢复时机依赖返回对象类型</p>
-</li>
-<li><p>特性<br>  ○ 非并行：协程只是在主线程分帧执行<br>  ○ 可跨帧保持局部变量状态<br>  ○ 可延迟逻辑&#x2F;控制执行顺序<br>五、举例：技能前摇系统<br>假设你做战斗系统：<br>IEnumerator SkillCast()<br>{<br> isCasting &#x3D; true;<br> &#x2F;&#x2F; 前摇 0.5 秒<br> yield return new WaitForSeconds(0.5f);</p>
-<p> DealDamage(); &#x2F;&#x2F; 攻击命中<br> isCasting &#x3D; false;</p>
-</li>
+<li>C# 层面<br>  ○ IEnumerator + 编译器状态机<br>  ○ yield return → 保存状态 + 暂停执行</li>
+<li>Unity 层面<br>  ○ Coroutine Manager 维护挂起队列<br>  ○ 每帧遍历判断是否恢复<br>  ○ 恢复时机依赖返回对象类型</li>
+<li>特性<br>  ○ 非并行：协程只是在主线程分帧执行<br>  ○ 可跨帧保持局部变量状态<br>  ○ 可延迟逻辑&#x2F;控制执行顺序<br>五、举例：技能前摇系统<br>假设你做战斗系统：</li>
 </ol>
+<p>IEnumerator SkillCast()<br>{<br>    isCasting &#x3D; true;<br>    &#x2F;&#x2F; 前摇 0.5 秒<br>    yield return new WaitForSeconds(0.5f);</p>
+<pre><code>DealDamage(); // 攻击命中
+isCasting = false;
+</code></pre>
 <p>}<br>执行原理：</p>
 <ol>
 <li>StartCoroutine → 状态机生成 → 入队</li>
@@ -219,8 +204,62 @@
 <li>局部变量和参数的快照<br>  ○ 不是直接保存在 state 里，但编译器会把它们变成状态机的成员变量<br>  ○ 保证跨帧保持值</li>
 <li>特殊值 -1<br>  ○ 表示协程已经结束<br>为什么需要 state？<br>如果没有 state，协程就没办法跨帧保存上下文：<br>● 你的前摇技能挂起 0.5 秒<br>● 下一帧继续执行 DealDamage<br>● 如果没有 state，就不知道该从哪一行继续，也无法保留局部变量 x<br>七、 体是如何判断继续执行的条件<br>一、协程恢复的核心逻辑</li>
 <li>协程本身是一个 IEnumerator 状态机<br>  ○ state 保存位置<br>  ○ Current 保存 yield return 的值</li>
-<li>Unity 每帧会遍历挂起的协程队列，查看 每个协程的 Current 返回值，决定是否可以调用 MoveNext() 继续执行。<br>所以判断“是否继续执行”，完全依赖 yield 返回的对象类型。<br>二、不同 yield 对应的条件<br>yield return 类型	Unity 判断条件（何时调用 MoveNext）	说明<br>null	下一帧 Update 结束	跨一帧，立即恢复<br>WaitForSeconds(seconds)	等待累计时间 &gt;&#x3D; seconds	Unity 内部计时器，每帧累加 deltaTime，时间到恢复<br>WaitForFixedUpdate	FixedUpdate 完成	下一次物理帧结束后恢复<br>WaitForEndOfFrame	本帧渲染完成	在渲染管线末尾恢复（LateUpdate 后）<br>自定义 yield 对象（实现 ICustomYieldInstruction<br>)	keepWaiting &#x3D;&#x3D; false	自定义条件判断，返回 false 时恢复<br>三、内部原理<br>假设协程队列是这样：<br>List<IEnumerator> waitingCoroutines;<br> 每帧大致伪代码：</li>
+<li>Unity 每帧会遍历挂起的协程队列，查看 每个协程的 Current 返回值，决定是否可以调用 MoveNext() 继续执行。<br>所以判断“是否继续执行”，完全依赖 yield 返回的对象类型。<br>二、不同 yield 对应的条件</li>
 </ol>
+<table>
+<thead>
+<tr>
+<th>yield return 类型</th>
+<th>Unity 判断条件（何时调用 MoveNext）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>null</td>
+<td>下一帧 Update 结束</td>
+<td>跨一帧，立即恢复</td>
+</tr>
+<tr>
+<td>WaitForSeconds(seconds)</td>
+<td>等待累计时间 &gt;&#x3D; seconds</td>
+<td>Unity 内部计时器，每帧累加 deltaTime，时间到恢复</td>
+</tr>
+<tr>
+<td>WaitForFixedUpdate</td>
+<td>FixedUpdate 完成</td>
+<td>下一次物理帧结束后恢复</td>
+</tr>
+<tr>
+<td>WaitForEndOfFrame</td>
+<td>本帧渲染完成</td>
+<td>在渲染管线末尾恢复（LateUpdate 后）</td>
+</tr>
+<tr>
+<td>自定义 yield 对象（ICustomYieldInstruction）</td>
+<td>keepWaiting &#x3D;&#x3D; false</td>
+<td>自定义条件判断，返回 false 时恢复</td>
+</tr>
+<tr>
+<td>三、内部原理</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>假设协程队列是这样：</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>List<IEnumerator> waitingCoroutines;</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>每帧大致伪代码：</td>
+<td></td>
+<td></td>
+</tr>
+</tbody></table>
 <figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> each coroutine <span class="keyword">in</span> waitingCoroutines:</span><br><span class="line">    <span class="built_in">object</span> yieldObj = coroutine.Current;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (CanResume(yieldObj)):</span><br><span class="line">        <span class="built_in">bool</span> hasNext = coroutine.MoveNext();</span><br><span class="line">        <span class="keyword">if</span> (!hasNext) <span class="keyword">remove</span> <span class="keyword">from</span> waitingCoroutines</span><br></pre></td></tr></table></figure>
 
 <p>CanResume(yieldObj) 的逻辑：  </p>
